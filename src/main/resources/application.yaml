@@ -1,0 +1,39 @@
+idgen:
+  data:
+    templates-path: ${IDGEN_TEMPLATES_PATH:/data/templates.json}
+    cities-path: ${IDGEN_CITIES_PATH:/data/cities.csv}
+  block-size: 100
+  bulk-max: 1000
+  zone: Asia/Kolkata
+
+quarkus:
+  http:
+    port: 8080
+  datasource:
+    db-kind: postgresql
+  log:
+    console:
+      format: "%d{HH:mm:ss.SSS} %-5p [%c{2.}] (%t) %s%e%n"
+
+# Production (docker compose): connect to the compose Postgres.
+# In dev/test, Quarkus Dev Services starts a throwaway Postgres container instead.
+"%prod":
+  quarkus:
+    datasource:
+      username: ${DB_USER:idgen}
+      password: ${DB_PASSWORD:idgen}
+      reactive:
+        url: ${DB_URL:postgresql://postgres:5432/idgen}
+        max-size: 10
+
+# Local `./mvnw quarkus:dev` reads the files straight from the repo.
+"%dev":
+  idgen:
+    data:
+      templates-path: data/templates.json
+      cities-path: data/cities.csv
+"%test":
+  idgen:
+    data:
+      templates-path: data/templates.json
+      cities-path: data/cities.csv
