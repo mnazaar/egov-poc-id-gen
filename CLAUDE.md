@@ -1,7 +1,7 @@
 # ID Generation Service — instructions for Claude Code
 
 The full spec is **[docs/architecture.md](docs/architecture.md)**. Read it before any change.
-The API contract, error codes, counter scoping (ADR-003) and allocation design (ADR-001) there are binding.
+The API contract and error codes there are binding, as are the ADRs it links to in `docs/adr/` (allocation: ADR-001, counter scoping: ADR-003).
 
 ## Rules
 - Java 25 (LTS), Quarkus 3.x, Maven wrapper (`./mvnw`), one module, package `org.egov.idgen`.

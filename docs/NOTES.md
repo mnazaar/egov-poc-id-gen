@@ -29,3 +29,4 @@ Decisions made while building, in order. Feeds `ai-log.md` and `spec.md`.
 - 2026-11-13 07:00 — `count` must be a JSON integer: `"5"`, `2.5`, `true`, `null` are INVALID_COUNT.
 - 2026-11-13 07:00 — Open: the recent-IDs view is per instance (spec). Behind Nginx round-robin, the UI's recent list changes with whichever instance answers. Decide before the UI step.
 - 2026-11-13 07:10 — ADR-005: config loaded once at startup, restart to apply. Editing an existing template's format is unsafe (can re-issue IDs); add a new template ID instead.
+- 2026-11-13 07:20 — `docs/architecture.md` now links to the ADR files instead of repeating them; `docs/adr/` is the one local copy. The Claude Doc still holds the full ADRs.
