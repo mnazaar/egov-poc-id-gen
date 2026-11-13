@@ -104,6 +104,7 @@ Bad configuration (`templates.json`, `cities.csv`) stops startup with one line n
 | [`docs/adr/`](docs/adr/) | Six architecture decision records: sequences with in-memory blocks, Quarkus, counter scoping and tenancy, Nginx over an API gateway, config loaded at startup, per-instance memory without Redis | One decision per file, each with options, consequences and "another day" |
 | [`plan.md`](plan.md) | Milestones as they went, data model, API sketch, test strategy, "another day" | Read after this spec |
 | [`ai-log.md`](ai-log.md) | Where the AI was wrong and how it was caught; the step-by-step log is in [`docs/ai-log.md`](docs/ai-log.md) | Read for how Claude Code was driven |
+| [`docs/claude-code-session.txt`](docs/claude-code-session.txt) | The exported Claude Code session, unedited | Read with [`docs/prompt-index.md`](docs/prompt-index.md), which summarises each prompt with its line numbers |
 | [`README.md`](README.md) | Run instructions, a 10-step UI walkthrough, manual `curl` checks | Start here to run it |
 | [`egov-poc-id-gen.postman_collection.json`](egov-poc-id-gen.postman_collection.json) | Postman collection: ping, health, templates, cities, single issue, bulk issue, recent IDs | Import into Postman; every request targets `http://localhost:8080` |
 | [`loadtest/loadtest.py`](loadtest/loadtest.py) | Concurrency test: 50 OS processes against 3 replicas, mixed single and bulk, fails on any duplicate | `docker compose --profile test run --rm loadtest` |

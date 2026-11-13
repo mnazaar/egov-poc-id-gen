@@ -9,7 +9,7 @@ Quarkus + Postgres sequences. Architecture and implementation plan: [docs/archit
 |---|---|
 | [spec.md](spec.md) | The problem, every ambiguity with the decision and why, questions for the reviewers, out of scope |
 | [plan.md](plan.md) | Milestones as they went, data model, API, test strategy, "another day" |
-| [ai-log.md](ai-log.md) | Where the AI was wrong and how it was caught; full log in [docs/ai-log.md](docs/ai-log.md) |
+| [ai-log.md](ai-log.md) | Where the AI was wrong and how it was caught; full log in [docs/ai-log.md](docs/ai-log.md); the unedited session in [docs/claude-code-session.txt](docs/claude-code-session.txt) with a [prompt index](docs/prompt-index.md) |
 | [docs/architecture.md](docs/architecture.md) | The architecture and implementation plan written before any code ([PDF](docs/Architecture%20and%20Implementation%20Plan.pdf)) |
 | [docs/adr/](docs/adr/) | Six architecture decision records |
 

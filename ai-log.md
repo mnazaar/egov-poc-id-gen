@@ -2,6 +2,8 @@
 
 This service was built with Claude Code (Claude Opus 5.5), driven step by step from an architecture and implementation plan written first. The full step-by-step log, with each prompt, what the AI did and what went wrong, is in **[docs/ai-log.md](docs/ai-log.md)**; decisions made while building are in [docs/NOTES.md](docs/NOTES.md).
 
+**Session transcript:** the exported Claude Code session is in [docs/claude-code-session.txt](docs/claude-code-session.txt), **unedited**. The prompts were typed quickly during the time box, so they are short and contain typos; [docs/prompt-index.md](docs/prompt-index.md) summarises what each one directed, phase by phase, with the line numbers to check against.
+
 ## Where the AI was wrong, and how it was caught
 
 1. **A startup-order bug the tests could not see.** Claude assumed that injecting the config loader into the sequence warm-up would load the config first; Quarkus injects a lazy proxy, so in Docker the warm-up ran before the config existed and created no sequences, while all tests passed. It was caught by checking `pg_sequences` on the real 3-instance stack (2 sequences instead of 41) and reading the startup log order, and fixed by calling the loader explicitly.
