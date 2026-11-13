@@ -27,5 +27,6 @@ The API contract and error codes there are binding, as are the ADRs it links to 
 - `nginx/nginx.conf` — round-robin to 3 backend replicas
 - `loadtest/loadtest.py` — multiprocess duplicate check
 - `docs/adr/` — ADRs 0001–0006
+- `egov-poc-id-gen.postman_collection.json` — Postman collection (the author's); keep it in step with the API
 - `docs/NOTES.md` — decisions and assumptions made while building
 - `docs/ai-log.md` — running log of the AI-assisted build

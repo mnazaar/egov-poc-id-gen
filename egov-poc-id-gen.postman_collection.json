@@ -1,0 +1,199 @@
+{
+  "info": {
+    "_postman_id": "d1d84fac-f398-49bd-8e07-0eeb13c0fbf0",
+    "name": "egov-poc-id-gen",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "14430290",
+    "_collection_link": "https://go.postman.co/collection/14430290-d1d84fac-f398-49bd-8e07-0eeb13c0fbf0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "ping",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/ping",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "ping"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/q/health/ready",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "q",
+            "health",
+            "ready"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "templates",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/templates",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "templates"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "cities",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/cities",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "cities"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get next id",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"templateId\":\"EST_ALLOTMENT\",\"city\":\"tn.madurai\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/ids",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "ids"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/api/ids -H \"Content-Type: application/json\"      -d '{\"templateId\":\"PG_RECEIPT\",\"city\":\"pb.amritsar\"}'"
+      },
+      "response": []
+    },
+    {
+      "name": "get bulk id",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"templateId\":\"WS_CONNECTION\",\"city\":\"LDH\",\"count\":20}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/ids/bulk",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "ids",
+            "bulk"
+          ]
+        },
+        "description": "Generated from cURL: curl -X POST http://localhost:8080/api/ids/bulk -H \"Content-Type: application/json\"      -d '{\"templateId\":\"WS_CONNECTION\",\"city\":\"LDH\",\"count\":3}'"
+      },
+      "response": []
+    },
+    {
+      "name": "recently issued ids",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/ids/recent?templateId=PG_RECEIPT&city=AMR&limit=10",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "ids",
+            "recent"
+          ],
+          "query": [
+            {
+              "key": "templateId",
+              "value": "PG_RECEIPT"
+            },
+            {
+              "key": "city",
+              "value": "AMR"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl \"http://localhost:8080/api/ids/recent?templateId=PG_RECEIPT&city=AMR&limit=10\"\r\n\r\n"
+      },
+      "response": []
+    }
+  ]
+}

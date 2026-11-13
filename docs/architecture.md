@@ -81,7 +81,7 @@ The build is done when every box below can be ticked from a fresh clone. Reviewe
 - `data/` files are byte-for-byte unchanged.
 
 **Documents in the repo**
-- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, and `docs/adr/0001–0006`.
+- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, the Postman collection `egov-poc-id-gen.postman_collection.json`, and `docs/adr/0001–0006`.
 
 ## Decisions on the brief's open points
 
@@ -298,6 +298,7 @@ idgen/
 ├── docs/architecture.md      # this document
 ├── nginx/nginx.conf          # round-robin to backend:8080
 ├── README.md                 # compose up, URL, test command, Docker Hub image
+├── egov-poc-id-gen.postman_collection.json   # Postman: every endpoint, localhost:8080
 ├── spec.md  plan.md  docs/ai-log.md
 ├── docs/adr/0001-sequences-in-memory-blocks.md
 ├── docs/adr/0002-quarkus.md

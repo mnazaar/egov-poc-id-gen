@@ -9,7 +9,7 @@ Quarkus + Postgres sequences. Design: [docs/architecture.md](docs/architecture.m
 docker compose up --build
 ```
 
-Then open http://localhost:8080 (`/api/ping`, `/q/health/ready`).
+Then open **http://localhost:8080** for the UI: pick a template and city, enter a count (1 = single, 2–1000 = bulk), and press Issue. The page lists what it issued, with the instance that served each batch, and the recent IDs of the instance that answers (see [How numbering behaves](#how-numbering-behaves-by-design)). Health: `/q/health/ready`.
 The first build downloads Maven dependencies and takes a few minutes.
 
 ## How numbering behaves (by design)
@@ -20,6 +20,37 @@ The first build downloads Maven dependencies and takes a few minutes.
 - **"Recent IDs" is per instance.** `GET /api/ids/recent` shows what the instance that answers has issued, so a refresh can show another instance's list, and a restart empties it. A shared view (Redis, written asynchronously so issuing isn't slowed) is the "another day" item.
 
 Details and alternatives: [ADR-001](docs/adr/0001-sequences-in-memory-blocks.md), [ADR-006](docs/adr/0006-per-instance-memory-no-redis.md).
+
+## Testing with the UI
+
+Open **http://localhost:8080** after `docker compose up`.
+
+| # | Do this | You should see |
+|---|---|---|
+| 1 | Pick **PG_RECEIPT** and **Amritsar**, count **1**, press **Issue** | One ID such as `PG-AMR-2026-27-000001` (on a fresh database) under "Issued from this page", with the time and the instance that served it (e.g. `instance 172.18.0.4:8080`) |
+| 2 | Press **Issue** three more times | IDs from different instances interleave: `…000001`, `…000101`, `…000201`, `…000002`. Each instance counts up inside its own block ([why](#how-numbering-behaves-by-design)) |
+| 3 | Pick **WS_CONNECTION** and **Ludhiana**, count **20**, **Issue** | 20 IDs in one batch, normally consecutive (on a fresh database `WS-LDH-1000-11-2026` to `…1019-11-2026`; this counter starts at 1000); **Copy** puts them on the clipboard |
+| 4 | Pick **PGR_COMPLAINT**, issue for **Amritsar**, then for **Chennai** | No city in the ID, and Chennai does not restart at `PGR-00000001`: one global counter for all cities |
+| 5 | Pick **EST_ALLOTMENT** | The hint under the form warns that its counter has no configuration |
+| 6 | Press **Issue** on EST_ALLOTMENT | A red box: `COUNTER_NOT_CONFIGURED (HTTP 422)` with the template and counter in the details |
+| 7 | Enter count **0** or **1001**, press **Issue** | `INVALID_COUNT`, caught in the browser before anything is sent |
+| 8 | Look at **Recently issued on this instance**, press **Refresh** a few times | The panel names the instance that answered; its list changes with the instance, because each keeps its own last 50 IDs ([ADR-006](docs/adr/0006-per-instance-memory-no-redis.md)). Tick **All templates and cities** to drop the filter |
+| 9 | Run `docker compose stop backend`, press **Issue** | `SERVICE_UNAVAILABLE (HTTP 503)` in the same red box: Nginx's JSON error when no backend is up. Run `docker compose start backend` and, after about 20 s, issuing works again |
+| 10 | Run `docker compose stop postgres`, issue for a template and city you haven't used yet, with count **900** | `SEQUENCE_UNAVAILABLE (HTTP 503)`: a new block is needed and the database is down. Combinations already used keep issuing from memory. `docker compose start postgres` recovers without a restart |
+
+## Postman collection
+
+Import [`egov-poc-id-gen.postman_collection.json`](egov-poc-id-gen.postman_collection.json) into Postman. Every request targets `http://localhost:8080`, so start the stack first.
+
+| Request | Method and path | Shows |
+|---|---|---|
+| ping | `GET /api/ping` | Which instance answered; repeat to see round-robin |
+| health | `GET /q/health/ready` | Config and Postgres checks |
+| templates | `GET /api/templates` | The 6 templates; EST_ALLOTMENT has `canIssue: false` |
+| cities | `GET /api/cities` | The 10 cities |
+| get next id | `POST /api/ids` | Body uses EST_ALLOTMENT, so it returns `422 COUNTER_NOT_CONFIGURED`; change `templateId` to e.g. `PG_RECEIPT` for an ID |
+| get bulk id | `POST /api/ids/bulk` | 20 water-connection IDs for Ludhiana |
+| recently issued ids | `GET /api/ids/recent?templateId=PG_RECEIPT&city=AMR&limit=10` | The answering instance's recent IDs (ADR-006) |
 
 ## Concurrency test (zero duplicates)
 

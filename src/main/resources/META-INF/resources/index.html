@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ID Generator</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dfe3ea;
+    --accent: #1f5fbf; --accent-text: #ffffff; --ok: #1d7a46; --err-bg: #fdecec; --err: #a3262a;
+    --code-bg: #f1f3f7; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #9aa3b2; --line: #2c3340;
+      --accent: #5b9bff; --accent-text: #0d1117; --ok: #5ccf8e; --err-bg: #3a1d20; --err: #ff8f94;
+      --code-bg: #232a35; --warn: #e7b65a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 16px 4px; max-width: 1100px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); }
+  main { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+         padding: 16px; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 800px) { main { grid-template-columns: minmax(0, 1fr); } }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+  section.wide { grid-column: 1 / -1; }
+  h2 { margin: 0 0 12px; font-size: 16px; }
+  .sub { color: var(--muted); font-size: 13px; margin: -8px 0 12px; }
+  form { display: grid; gap: 12px; grid-template-columns: 2fr 2fr 1fr auto; align-items: end; }
+  @media (max-width: 800px) { form { grid-template-columns: minmax(0, 1fr); } }
+  label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+  select, input { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line);
+                  border-radius: 6px; padding: 8px; width: 100%; min-width: 0; }
+  button { font: inherit; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text);
+           border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); padding: 4px 10px; font-size: 13px; }
+  button:disabled { opacity: .55; cursor: progress; }
+  .hint { grid-column: 1 / -1; color: var(--muted); font-size: 13px; margin: 0; }
+  .hint.warn { color: var(--warn); }
+  .error { background: var(--err-bg); color: var(--err); border-radius: 6px; padding: 10px 12px; margin-top: 12px;
+           overflow-wrap: anywhere; }
+  .error code { font-weight: 600; }
+  .batch { border-top: 1px solid var(--line); padding: 10px 0; }
+  .batch:first-child { border-top: 0; padding-top: 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .meta strong { color: var(--text); }
+  .ids { display: flex; flex-wrap: wrap; gap: 6px; max-height: 220px; overflow: auto; }
+  code.id { background: var(--code-bg); border-radius: 4px; padding: 2px 6px; font: 13px/1.5 ui-monospace, Consolas, monospace;
+            overflow-wrap: anywhere; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td code { font: 13px ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+  .table-wrap { overflow-x: auto; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .row h2 { margin: 0; }
+  .empty { color: var(--muted); margin: 0; }
+  .ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ID Generator</h1>
+  <p>Issue formatted IDs for a template and city. IDs are unique; they are not strictly sequential, because each
+     backend instance issues from its own block of numbers.</p>
+</header>
+
+<main>
+  <section class="wide" aria-labelledby="issue-h">
+    <h2 id="issue-h">Issue IDs</h2>
+    <form id="issue-form" novalidate>
+      <label>Template
+        <select id="template" required><option value="">Loading…</option></select>
+      </label>
+      <label>City
+        <select id="city" required><option value="">Loading…</option></select>
+      </label>
+      <label><span>Count (1–1000)</span>
+        <input id="count" type="number" min="1" max="1000" step="1" value="1" required inputmode="numeric">
+      </label>
+      <button id="issue" type="submit">Issue</button>
+      <p id="template-hint" class="hint"></p>
+    </form>
+    <div id="error" class="error" role="alert" hidden></div>
+  </section>
+
+  <section aria-labelledby="results-h">
+    <div class="row">
+      <h2 id="results-h">Issued from this page</h2>
+      <button id="clear" class="ghost" type="button">Clear</button>
+    </div>
+    <div id="results"><p class="empty">Nothing issued yet.</p></div>
+  </section>
+
+  <section aria-labelledby="recent-h">
+    <div class="row">
+      <h2 id="recent-h">Recently issued on this instance</h2>
+      <button id="refresh" class="ghost" type="button">Refresh</button>
+    </div>
+    <p class="sub">Each backend keeps its own last 50 IDs per template and city in memory, so this list depends on
+       which instance answers (<span id="recent-instance">–</span>) and empties when it restarts.</p>
+    <label style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+      <input id="recent-all" type="checkbox" style="width:auto"> All templates and cities
+    </label>
+    <div id="recent" class="table-wrap"><p class="empty">Loading…</p></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const el = (tag, props = {}, ...children) => {
+  const n = Object.assign(document.createElement(tag), props);
+  children.forEach(c => n.append(c));
+  return n;
+};
+const BULK_MAX = 1000;
+let templates = [];
+const batches = [];
+
+/** fetch JSON; returns { ok, status, body, instance } and never throws on HTTP errors. */
+async function api(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  } catch (e) {
+    return { ok: false, status: 0, body: null, instance: null };
+  }
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* not JSON */ }
+  return { ok: res.ok, status: res.status, body, instance: res.headers.get("X-Upstream") };
+}
+
+function showError(r) {
+  const box = $("error");
+  box.replaceChildren();
+  if (r.body && r.body.error) {
+    const e = r.body.error;
+    box.append(el("code", { textContent: e.code }), ` (HTTP ${r.status}): ${e.message}`);
+    const details = e.details && Object.keys(e.details).length ? JSON.stringify(e.details) : "";
+    if (details) box.append(el("div", { textContent: "Details: " + details }));
+  } else {
+    box.textContent = r.status ? `Request failed with HTTP ${r.status}.` : "The service could not be reached.";
+  }
+  box.hidden = false;
+}
+
+function hideError() { $("error").hidden = true; }
+
+function updateTemplateHint() {
+  const t = templates.find(x => x.id === $("template").value);
+  const hint = $("template-hint");
+  if (!t) { hint.textContent = ""; return; }
+  hint.className = t.canIssue ? "hint" : "hint warn";
+  hint.textContent = t.canIssue
+    ? `Format ${t.format} · counter ${t.counter}, scoped by ${t.scope}`
+    : `Format ${t.format} · ${t.reason}. Issuing returns 422 COUNTER_NOT_CONFIGURED.`;
+}
+
+async function loadMeta() {
+  const [t, c] = await Promise.all([api("/api/templates"), api("/api/cities")]);
+  if (!t.ok || !c.ok) { showError(t.ok ? c : t); return; }
+  templates = t.body;
+  $("template").replaceChildren(...templates.map(x =>
+    el("option", { value: x.id, textContent: x.canIssue ? `${x.id} · ${x.name}` : `${x.id} · ${x.name} (counter not configured)` })));
+  $("city").replaceChildren(...c.body.map(x =>
+    el("option", { value: x.tenantId, textContent: `${x.name} · ${x.cityCode} · ${x.tenantId}` })));
+  updateTemplateHint();
+  loadRecent();
+}
+
+async function issue(evt) {
+  evt.preventDefault();
+  hideError();
+  const templateId = $("template").value, city = $("city").value;
+  const count = Number($("count").value);
+  if (!Number.isInteger(count) || count < 1 || count > BULK_MAX) {
+    showError({ status: 400, body: { error: { code: "INVALID_COUNT", message: `Count must be a whole number from 1 to ${BULK_MAX}` } } });
+    return;
+  }
+  $("issue").disabled = true;
+  const bulk = count > 1;
+  const r = await api(bulk ? "/api/ids/bulk" : "/api/ids", {
+    method: "POST",
+    body: JSON.stringify(bulk ? { templateId, city, count } : { templateId, city })
+  });
+  $("issue").disabled = false;
+  if (!r.ok) { showError(r); return; }
+  const ids = bulk ? r.body.ids : [r.body.id];
+  batches.unshift({ ...r.body, ids, instance: r.instance });
+  renderResults();
+  loadRecent();
+}
+
+function renderResults() {
+  const box = $("results");
+  if (!batches.length) { box.replaceChildren(el("p", { className: "empty", textContent: "Nothing issued yet." })); return; }
+  box.replaceChildren(...batches.map(b => {
+    const copy = el("button", { className: "ghost", type: "button", textContent: "Copy" });
+    copy.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(b.ids.join("\n")); copy.textContent = "Copied"; }
+      catch (e) { copy.textContent = "Copy failed"; }
+      setTimeout(() => (copy.textContent = "Copy"), 1500);
+    });
+    return el("div", { className: "batch" },
+      el("div", { className: "meta" },
+        el("strong", { textContent: `${b.ids.length} × ${b.templateId}` }),
+        el("span", { textContent: `${b.cityCode} · ${b.tenantId}` }),
+        el("span", { textContent: new Date(b.issuedAt).toLocaleTimeString() }),
+        el("span", { textContent: "instance " + (b.instance || "?") }),
+        copy),
+      el("div", { className: "ids" }, ...b.ids.map(id => el("code", { className: "id", textContent: id }))));
+  }));
+}
+
+async function loadRecent() {
+  const params = new URLSearchParams({ limit: "50" });
+  if (!$("recent-all").checked) {
+    if ($("template").value) params.set("templateId", $("template").value);
+    if ($("city").value) params.set("city", $("city").value);
+  }
+  const r = await api("/api/ids/recent?" + params);
+  $("recent-instance").textContent = r.instance ? "this time: " + r.instance : "unknown";
+  const box = $("recent");
+  if (!r.ok) { box.replaceChildren(el("p", { className: "empty", textContent: "Could not load recent IDs." })); return; }
+  if (!r.body.length) {
+    box.replaceChildren(el("p", { className: "empty", textContent:
+      `Instance ${r.instance || "?"} has not issued any for this selection yet. Requests rotate between instances, ` +
+      "so IDs issued above may have come from another one; Refresh may reach it." }));
+    return;
+  }
+  box.replaceChildren(el("table", {},
+    el("thead", {}, el("tr", {}, ...["ID", "Template", "City", "Issued"].map(h => el("th", { textContent: h })))),
+    el("tbody", {}, ...r.body.map(x => el("tr", {},
+      el("td", {}, el("code", { textContent: x.id })),
+      el("td", { textContent: x.templateId }),
+      el("td", { textContent: x.cityCode }),
+      el("td", { textContent: new Date(x.issuedAt).toLocaleTimeString() }))))));
+}
+
+$("issue-form").addEventListener("submit", issue);
+$("template").addEventListener("change", () => { updateTemplateHint(); loadRecent(); });
+$("city").addEventListener("change", loadRecent);
+$("recent-all").addEventListener("change", loadRecent);
+$("refresh").addEventListener("click", loadRecent);
+$("clear").addEventListener("click", () => { batches.length = 0; renderResults(); });
+loadMeta();
+</script>
+</body>
+</html>

@@ -89,3 +89,19 @@ The spec Claude worked from is [architecture.md](architecture.md).
 **Asked (author's decision):** recent IDs come from each instance's memory; with another day they could move to a central cache such as Redis. Keeping numbers in local blocks is intentional to avoid round trips, so Redis is not used for that: it would add network latency. IDs not being issued in exact sequence, and jumping by instance, is acceptable. Document it in the README and an ADR.
 
 **Claude did:** wrote ADR-006 (both behaviours, the four options for the recent view, and "another day": publish issued IDs to Redis asynchronously so issuing isn't slowed, Redis never deciding a number), added it to the Claude Doc and the ADR list, and added a "How numbering behaves (by design)" section near the top of the README so reviewers see it before testing. Also noted that the UI must label the recent list as per instance.
+
+## 2026-11-13 — Step 5: UI
+
+**Asked:** `index.html` with template + city dropdowns from the meta endpoints, a count field, issue, a results list, and a recent-IDs panel.
+
+**Claude did:** one static page (no libraries), served by Quarkus at `/`: dropdowns from `/api/templates` and `/api/cities` (EST marked, still selectable to show the 422), count 1 → single, 2–1000 → bulk, results per batch with the serving instance and a copy button, API errors shown with code and message, recent panel labelled per instance (ADR-006), light/dark theme, one column on narrow screens. Test: page served at `/`. Verified in headless Edge: screenshots at 1200 and 520 px, then drove the page over the DevTools protocol (Node's built-in WebSocket) to issue a bulk, a single, the EST error and a count of 0.
+
+**Went wrong / corrected:**
+- The count label broke over three lines (CSS grid treated the text and a nested span as separate rows); caught from the screenshot, fixed by wrapping the label text.
+- A re-screenshot looked unfixed because headless Edge reused its cached page; a fresh profile showed the fix.
+- A 400 px screenshot looked cut off; that was the browser's minimum window width, not the page (520 px rendered correctly).
+- After issuing, the recent panel was empty because the refresh reached another instance: correct per ADR-006, but confusing, so the empty message now explains it.
+
+**Follow-up, Postman:** the author added `egov-poc-id-gen.postman_collection.json` and asked for it to be listed with the required documents. Claude checked it held no tokens or private URLs, then added a README section describing each request, and listed it in the spec (Claude Doc and local copy) and `CLAUDE.md`.
+
+**Follow-up, README UI walkthrough:** the author asked how to test with the UI. Claude added a 10-step table (single, interleaving across instances, bulk, PGR global counter, EST hint and 422, invalid count, per-instance recent panel, all backends down, Postgres down), then corrected two rows that promised more than the system guarantees: example numbers only appear on a fresh database, and PGR numbers only continue exactly when the same instance serves both requests.
