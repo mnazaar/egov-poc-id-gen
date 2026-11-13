@@ -69,6 +69,14 @@ public class DataLoader {
                 t.id(), t.counterName()));
     }
 
+    /**
+     * True once both files are loaded. Calling this forces loading: an injected {@code @ApplicationScoped}
+     * bean is a lazy proxy, so merely injecting DataLoader does not run {@link #load()}.
+     */
+    public boolean isLoaded() {
+        return !templates.all().isEmpty() && !cities.all().isEmpty();
+    }
+
     // ---------------------------------------------------------------- cities.csv
 
     public static List<City> parseCities(Path file) {

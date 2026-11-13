@@ -21,3 +21,11 @@ Decisions made while building, in order. Feeds `ai-log.md` and `spec.md`.
 - 2026-11-13 06:40 — Spec inconsistency: ADR-001/003 show the WS sequence as `seq_ws_amr`, but the decisions table scopes `SEQ_WS` by city + month (it prints `[CY:MM-yyyy]`). Code follows the scoping rule: the key includes the month. Fix the examples when writing the ADR files' final versions.
 - 2026-11-13 06:40 — A named counter entry without `start` defaults to 1; a negative `start` fails startup.
 - 2026-11-13 06:40 — Template IDs are matched exactly (case-sensitive); only cities are case-insensitive, as the spec says.
+- 2026-11-13 07:00 — Sequence names follow the spec examples (`seq_pg_receipt_amr_2026_27`, `seq_pgr_complaint`); named counters drop their `SEQ_` prefix (`seq_ws_amr_11_2026`). If two keys ever map to one name they share a sequence: still no duplicates, only shared numbering. Names over 63 chars are cut and get an 8-char hash.
+- 2026-11-13 07:00 — Block size: 100, or 10 when a counter has fewer than 10,000 values inside its printed width (`SEQ_WS:4` from 1000 has 9,000). TL `[SEQ:5]` (99,999 values) keeps 100. Allocation always uses `increment_by` read from `pg_sequences`.
+- 2026-11-13 07:00 — Startup creates sequences for the current period only (ADR-001 says current and next). Next period's sequences are created on first use; one `CREATE SEQUENCE IF NOT EXISTS` costs a few ms once.
+- 2026-11-13 07:00 — Request validation (body shape, missing fields, `count`) runs before lookups, so `{"templateId":"NOPE","count":0}` is INVALID_COUNT, not UNKNOWN_TEMPLATE.
+- 2026-11-13 07:00 — Framework errors use the same shape with HTTP-name codes not in the spec's table: `NOT_FOUND` (404), `METHOD_NOT_ALLOWED` (405), `UNSUPPORTED_MEDIA_TYPE` (415). Add them to the API contract.
+- 2026-11-13 07:00 — `count` must be a JSON integer: `"5"`, `2.5`, `true`, `null` are INVALID_COUNT.
+- 2026-11-13 07:00 — Open: the recent-IDs view is per instance (spec). Behind Nginx round-robin, the UI's recent list changes with whichever instance answers. Decide before the UI step.
+- 2026-11-13 07:10 — ADR-005: config loaded once at startup, restart to apply. Editing an existing template's format is unsafe (can re-issue IDs); add a new template ID instead.

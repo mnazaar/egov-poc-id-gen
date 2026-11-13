@@ -81,7 +81,7 @@ The build is done when every box below can be ticked from a fresh clone. Reviewe
 - `data/` files are byte-for-byte unchanged.
 
 **Documents in the repo**
-- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, and `docs/adr/0001–0004`.
+- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, and `docs/adr/0001–0005`.
 
 ## Decisions on the brief's open points
 
@@ -442,6 +442,40 @@ server {
 - Add per-tenant rate limits at the gateway, so one city cannot burn through a narrow counter such as `SEQ_WS:4`.
 - In Kubernetes, Nginx is replaced by a Service plus an Ingress (or the gateway itself), with readiness from `/q/health/ready` (ADR-002).
 
+## ADR-005: Templates and cities are loaded once at startup; changes need a restart
+
+**Decision:** `templates.json` and `cities.csv` are read once at startup, validated, and held in memory (templates pre-parsed into tokens). Nothing re-reads them while the service runs, so adding or changing a city or template takes a restart of every backend instance. Accepted, 13 Nov 2026.
+
+**Context.** The brief says to "load both files at startup" and treat them as configuration, not user input. Parsing once means no file I/O or string replacement per request (only rendering pre-parsed tokens), and a bad file is caught before the service takes traffic rather than halfway through a day.
+
+**What a restart does (verified by adding `ka.hubli,HBL,Hubli` to a copy of `cities.csv`):**
+- The instance logs `Loaded 6 templates and 11 cities` and creates the new city's sequences at startup (41 → 45); if Postgres is down then, they are created on first use.
+- `PG-HBL-2026-27-000001` and `WS-HBL-1000-11-2026` issue immediately. `PGR_COMPLAINT` continues its one global counter.
+- Instances not yet restarted answer `404 UNKNOWN_CITY` for the new city.
+
+**Which changes are safe**
+
+| Change | Safe? | Why |
+|---|---|---|
+| Add a city | Yes | New city code → new sequences; no existing ID can repeat |
+| Add a template | Yes | New template ID → new sequences |
+| Add a named counter (e.g. `SEQ_EST_ALLOT`) | Yes | EST_ALLOTMENT starts issuing instead of 422 |
+| Remove a city or template | Yes for uniqueness | Requests for it fail; its sequences stay in Postgres, so re-adding it continues, never restarts |
+| Change a counter's `start` after it has issued | No effect | The sequence already exists; `CREATE SEQUENCE IF NOT EXISTS` keeps the old start |
+| Change an existing template's `format` | **Not safe in general** | If the counter key changes (e.g. `[CITY]` or a period removed, or the counter renamed), a new sequence starts from `start` and can re-issue IDs already printed under the old format. Give the new format a new template ID instead |
+
+**Consequences**
+- **Restart to apply:** any change to `data/` needs every instance restarted. Compose mounts `./data:/data:ro`, so it is a restart, not a rebuild (`docker compose restart backend`).
+- **Short-lived inconsistency during a rolling restart:** for a few seconds some instances know the new city and others answer 404. Uniqueness is unaffected; it just looks inconsistent.
+- **All or nothing:** a bad row stops startup with one clear line naming the file and line, so an instance never runs on half a configuration.
+- **No runtime validation of format edits:** the service cannot tell that a template's format changed since the last run, so the unsafe row above relies on the operator.
+
+**With another day: reload without a restart.**
+- **Reload in place:** an admin endpoint (or a file watcher) re-reads both files, validates them completely, and swaps the registries in one step. The registries already hold their maps in `volatile` fields and are replaced whole, so requests see either the old or the new configuration, never a mix. A failed validation keeps the old one and reports why.
+- **Guard format changes:** keep the format each template ID was first seen with (a small `template_versions` table) and refuse a reload that changes the counter key of an existing template ID, pointing the operator to a new template ID.
+- **Every instance at once:** publish a reload event (Postgres `LISTEN/NOTIFY` is enough) so all replicas switch together instead of one by one.
+- **At platform scale:** cities and templates belong in a master-data service with an admin API and change events (DIGIT's MDMS plays this role), not in files inside the ID generator (ADR-003).
+
 ## Build plan for Claude Code
 
 Start 5:00 IST, submit by 8:00 IST. Code first; the documents are written from what was actually built. Save this document in the repo as `docs/architecture.md`, and point `CLAUDE.md` at it so every session starts with the same spec.
@@ -464,7 +498,7 @@ Start 5:00 IST, submit by 8:00 IST. Code first; the documents are written from w
 - **6:15–6:40 Concurrency test.** `loadtest/loadtest.py` + compose `loadtest` profile, plus the JMeter plan `loadtest/idgen.jmx` for throughput and latency.
 - *Done when:* 0 duplicates against 3 replicas, and again with `docker compose restart backend` mid-run. Save the output for the README.
 - **6:40–7:00 UI.** `index.html`: template + city dropdowns from the meta endpoints, a count field, issue, a results list, and a recent-IDs panel. **Code freeze at 7:00:** tag v1.0.0 and start the Docker Hub push in a second terminal.
-- **7:00–7:40 Documents from the code.** `spec.md` (problem, decisions table, out of scope), `docs/adr/0001–0004`, `plan.md` (milestones as they went, data model = sequences only, API from the real endpoints, test strategy, another day), `README.md` (`docker compose up`, the URL, test command, prebuilt image), `docs/ai-log.md` (kept up to date after every step; at the end add the exported session + 3–5 sentences from `docs/NOTES.md`).
+- **7:00–7:40 Documents from the code.** `spec.md` (problem, decisions table, out of scope), `docs/adr/0001–0005`, `plan.md` (milestones as they went, data model = sequences only, API from the real endpoints, test strategy, another day), `README.md` (`docker compose up`, the URL, test command, prebuilt image), `docs/ai-log.md` (kept up to date after every step; at the end add the exported session + 3–5 sentences from `docs/NOTES.md`).
 - **7:40–8:00 Verify and submit.** `git clone` into a new folder, `docker compose up`, run the load test, pull and run the Docker Hub image, then reply to the email with the repo link and the questions table.
 
 **If time runs short, cut in this order:** the JMeter plan, then the 3 replicas + Nginx (run against one instance and list multi-instance under "another day"), then the recent-IDs panel, then the API tests. Hold the 7:00 code freeze. Never cut the load test or the fresh-clone check.
@@ -487,6 +521,7 @@ idgen/
 ├── docs/adr/0002-quarkus.md
 ├── docs/adr/0003-counter-scoping-multi-tenancy.md
 ├── docs/adr/0004-nginx-over-api-gateway.md
+├── docs/adr/0005-config-loaded-at-startup.md
 ├── data/                     # templates.json, cities.csv — unchanged
 ├── src/main/java/…           # config, renderer, allocator, REST, errors
 ├── src/main/resources/application.yaml         # settings + data file paths

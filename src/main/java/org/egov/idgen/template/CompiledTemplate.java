@@ -41,7 +41,7 @@ public final class CompiledTemplate {
                 case Token.Sequence s -> seq = s;
                 case Token.Period p -> ps.add(p);
                 case Token.CityCode c -> city = true;
-                case Token.Literal l -> { }
+                case Token.Literal l -> { /* literals don't affect scoping */ }
             }
         }
         this.sequence = seq;
@@ -86,6 +86,11 @@ public final class CompiledTemplate {
     /** The counter this template draws from: its own ID for {@code [SEQ:n]}, else the named counter. */
     public String counterName() {
         return sequence.named() ? sequence.counter() : id;
+    }
+
+    /** Minimum digits of the sequence placeholder, e.g. 4 for {@code [SEQ_WS:4]}. */
+    public int sequenceWidth() {
+        return sequence.width();
     }
 
     public boolean printsCity() {

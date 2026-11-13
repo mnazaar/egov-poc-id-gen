@@ -26,6 +26,6 @@ The API contract, error codes, counter scoping (ADR-003) and allocation design (
 - `src/main/resources/META-INF/resources/index.html` — static UI
 - `nginx/nginx.conf` — round-robin to 3 backend replicas
 - `loadtest/loadtest.py` — multiprocess duplicate check
-- `docs/adr/` — ADRs 0001–0004
+- `docs/adr/` — ADRs 0001–0005
 - `docs/NOTES.md` — decisions and assumptions made while building
 - `docs/ai-log.md` — running log of the AI-assisted build

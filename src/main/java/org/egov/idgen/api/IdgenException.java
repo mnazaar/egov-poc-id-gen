@@ -14,6 +14,12 @@ public class IdgenException extends RuntimeException {
         this.details = details == null ? Map.of() : Map.copyOf(details);
     }
 
+    public IdgenException(ErrorCode code, String message, Map<String, Object> details, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+        this.details = details == null ? Map.of() : Map.copyOf(details);
+    }
+
     public IdgenException(ErrorCode code, String message) {
         this(code, message, Map.of());
     }

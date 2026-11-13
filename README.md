@@ -41,22 +41,47 @@ curl http://localhost:8080/api/templates   # 6 templates; EST_ALLOTMENT has "can
 curl http://localhost:8080/api/cities      # 10 cities
 ```
 
-**5. Failover when a backend stops**
+**5. Issue IDs**
+```sh
+curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json"      -d '{"templateId":"PG_RECEIPT","city":"pb.amritsar"}'
+curl -X POST http://localhost:8080/api/ids/bulk -H "Content-Type: application/json"      -d '{"templateId":"WS_CONNECTION","city":"LDH","count":3}'
+curl "http://localhost:8080/api/ids/recent?templateId=PG_RECEIPT&city=AMR&limit=10"
+```
+Repeat the first call: each of the 3 instances takes its own block of 100, so you'll see `…-000001`, `…-000101`, `…-000201`, then `…-000002`. Unique, with gaps by design (ADR-001).
+
+**6. Errors have one shape**
+```sh
+curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json" -d '{"templateId":"EST_ALLOTMENT","city":"AMR"}'   # 422 COUNTER_NOT_CONFIGURED
+curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json" -d '{"templateId":"NOPE","city":"AMR"}'            # 404 UNKNOWN_TEMPLATE
+curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json" -d '{"templateId":"PG_RECEIPT","city":"XYZ"}'      # 404 UNKNOWN_CITY
+curl -X POST http://localhost:8080/api/ids/bulk -H "Content-Type: application/json" -d '{"templateId":"PG_RECEIPT","city":"AMR","count":0}'  # 400 INVALID_COUNT
+curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json" -d '{bad'                                          # 400 VALIDATION_ERROR
+```
+Each returns `{"error":{"code":"…","message":"…","details":{…}}}`.
+
+**7. Sequences in Postgres**
+```sh
+docker compose exec postgres psql -U idgen -d idgen -c "select sequencename, increment_by, last_value from pg_sequences order by 1"
+```
+41 sequences: 4 templates × 10 cities + one global `seq_pgr_complaint`; `seq_ws_*` use blocks of 10.
+
+**8. Failover when a backend stops**
 ```sh
 docker stop idgen-backend-2
 curl -i http://localhost:8080/api/ping     # still 200, now 2 instances
 docker start idgen-backend-2                   # rejoins within ~5 s
 ```
 
-**6. Readiness goes DOWN without Postgres**
+**9. Postgres down**
 ```sh
 docker stop idgen-postgres-1
 curl http://localhost:8080/q/health/ready  # 503, DOWN
 curl http://localhost:8080/api/ping        # still 200 (no DB needed)
+curl -X POST http://localhost:8080/api/ids/bulk -H "Content-Type: application/json" -d '{"templateId":"TL_LICENSE","city":"NGP","count":500}'  # 503 SEQUENCE_UNAVAILABLE
 docker start idgen-postgres-1
 ```
 
-**7. Only Nginx is exposed**
+**10. Only Nginx is exposed**
 ```sh
 curl http://localhost:5432                 # connection refused
 docker compose port backend 8080               # error: no host port

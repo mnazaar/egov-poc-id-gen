@@ -45,3 +45,23 @@ The spec Claude worked from is [architecture.md](architecture.md).
 - Found a spec inconsistency (WS sequence examples omit the month that the scoping rule requires); the code follows the rule, noted in `NOTES.md`.
 - The author tested a broken `cities.csv` and saw the right message buried under a Quarkus stack trace, which the spec forbids. Claude now logs one line and stops startup with `PreventFurtherStepsException`. While there, Claude found an invisible literal byte-order-mark character in the source and replaced it; two attempts through the shell mangled the escape before an editor edit fixed it.
 - The author asked to review before every commit; `CLAUDE.md` now says so.
+
+## 2026-11-13 — Step 3: allocation + API
+
+**Asked:** SequenceStore, BlockAllocator, IdService, IdResource, ErrorMapper, RecentIds, plus API tests. Done when single + bulk work for every template × city and every error code returns the documented shape.
+
+**Claude did:**
+- `sequence`: `SequenceNames`, `SequenceSpec` (block size, small blocks for narrow counters), `SequenceStore` (reactive PG client; `CREATE SEQUENCE IF NOT EXISTS`, `nextval` × k via `generate_series`, `increment_by` from `pg_sequences`; concurrent-create and dropped-sequence handling), `BlockAllocator` (per-sequence `ReentrantLock`, several blocks per trip for bulk), `SequenceWarmup` (creates the 41 sequences at startup).
+- `issue.IdService`, `recent.RecentIds`, `api.IdResource` (`POST /api/ids`, `/api/ids/bulk`, `GET /api/ids/recent`), `api.ErrorMapper` (one shape for everything, correlation ID for 500s).
+- 206 tests green, including all 50 template × city pairs single and bulk, every error code, 1,000-ID bulk across 100 blocks, and parallel requests with no duplicates.
+- Verified on the real stack: 3 instances each took their own block (`000001`, `000101`, `000201`); 2,000 parallel requests through Nginx gave 22,564 IDs, 0 duplicates; with Postgres stopped, warm counters kept issuing and cold ones returned 503 SEQUENCE_UNAVAILABLE, recovering without a restart.
+
+**Went wrong / corrected:**
+- Startup ordering bug: the sequence warm-up ran before the config loaded and created 0 sequences in Docker, though tests passed. Claude had assumed injecting `DataLoader` loads it first; Quarkus injects a lazy proxy. Caught by checking `pg_sequences` on the real stack, not by tests. Fixed by calling the loader explicitly.
+- Claude wrote a nonsense nested `Map` interface in a test and a regex that would have counted template IDs as issued IDs (false duplicates); both fixed before the first run.
+
+## 2026-11-13 — ADR-005: config loaded at startup
+
+**Asked:** will adding a new city fail, or create its sequences automatically? Then: record it as an ADR, since templates and cities are cached at startup and a change needs a restart (fixable with another day).
+
+**Claude did:** verified with a copy of `cities.csv` plus `ka.hubli,HBL,Hubli` on an extra backend: after a restart it loaded 11 cities, created 4 new sequences (41 → 45) and issued `PG-HBL-2026-27-000001`; instances not restarted answered 404 UNKNOWN_CITY. Wrote ADR-005 with a table of which config changes are safe. While writing it, Claude spotted that editing an existing template's format can re-issue old IDs (the counter key changes, so a new sequence starts from `start`) and made "use a new template ID instead" an explicit rule. "Another day": validated hot reload with an atomic registry swap, a guard against format changes, and a reload event to all replicas.
