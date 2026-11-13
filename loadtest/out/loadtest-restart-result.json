@@ -1,0 +1,33 @@
+{
+  "target": "http://nginx:8080",
+  "workers": 50,
+  "duration_s": 46.9,
+  "requests": 19378,
+  "requests_per_s": 413.3,
+  "ids": 28151,
+  "distinct_ids": 28151,
+  "duplicates": 0,
+  "ids_per_s": 600.4,
+  "http_status": {
+    "200": 3541,
+    "422": 707,
+    "503": 15130
+  },
+  "errors": {
+    "503 SERVICE_UNAVAILABLE": 15130,
+    "422 COUNTER_NOT_CONFIGURED": 707
+  },
+  "ids_by_prefix": {
+    "BPA": 6102,
+    "PGR": 5953,
+    "TL": 5861,
+    "WS": 5199,
+    "PG": 5036
+  },
+  "backend_instances": {
+    "172.18.0.3:8080": 1270,
+    "172.18.0.4:8080": 1192,
+    "172.18.0.5:8080": 1079
+  },
+  "duplicate_examples": {}
+}

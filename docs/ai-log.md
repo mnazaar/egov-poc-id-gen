@@ -65,3 +65,21 @@ The spec Claude worked from is [architecture.md](architecture.md).
 **Asked:** will adding a new city fail, or create its sequences automatically? Then: record it as an ADR, since templates and cities are cached at startup and a change needs a restart (fixable with another day).
 
 **Claude did:** verified with a copy of `cities.csv` plus `ka.hubli,HBL,Hubli` on an extra backend: after a restart it loaded 11 cities, created 4 new sequences (41 → 45) and issued `PG-HBL-2026-27-000001`; instances not restarted answered 404 UNKNOWN_CITY. Wrote ADR-005 with a table of which config changes are safe. While writing it, Claude spotted that editing an existing template's format can re-issue old IDs (the counter key changes, so a new sequence starts from `start`) and made "use a new template ID instead" an explicit rule. "Another day": validated hot reload with an atomic registry swap, a guard against format changes, and a reload event to all replicas.
+
+## 2026-11-13 — Step 4: concurrency test + JMeter
+
+**Asked:** `loadtest/loadtest.py` + compose `loadtest` profile, plus the JMeter plan `loadtest/idgen.jmx`. Done when 0 duplicates against 3 replicas, and again with `docker compose restart backend` mid-run; save the output for the README.
+
+**Claude did:**
+- `loadtest.py`: 50 OS processes (`multiprocessing.Pool`), random template × city, single or bulk 1–50, collects every ID, exits 1 on any duplicate. Reports throughput, status codes, errors and which backend served each request (Nginx `X-Upstream`).
+- Results: 110,176 IDs in 31 s across 3 balanced instances, 0 duplicates; with all backends restarted mid-run, 66,839 IDs, 0 duplicates (13,936 × 502 while they were down).
+- JMeter: `idgen.jmx` (50 users, 60 s, CSV of every template × city, assertions on status and ID pattern), a Dockerfile that installs JMeter from the Apache archive with a SHA-512 check, compose profile `jmeter`. Result: 48,911 requests, 0 errors, 817 req/s, p95 56 ms.
+- README sections with the commands and saved output.
+
+**Went wrong / corrected:**
+- The `.jmx` header comment contained `--profile`; XML comments can't contain `--`, so JMeter refused the file. Fixed the comment.
+- The CSV regexes used `\d{6,}`; the comma split the CSV column, so every assertion failed (100 % errors with HTTP 200). Claude moved CSV generation into `make_requests.py` with comma-free patterns and an assertion that every row has 7 columns. Two attempts to patch the CSV in place through the shell failed on backslash escaping first.
+- `docker compose build -q` silently didn't rebuild the JMeter image (same trap as step 2); Claude spotted it by inspecting the image's entrypoint and now uses a normal build.
+- One JMeter trial returned 502 for every request, right after compose restarted Nginx for the run; it did not recur in five later runs and wasn't explained.
+
+**Follow-up, JSON when no backend is up:** the author asked for Claude's suggestion: Nginx's HTML 502 during a full restart broke "well-formed errors". Claude added `error_page 502 503 504 = @no_backend` returning `503 SERVICE_UNAVAILABLE` in the API's shape with `Retry-After`, verified both that it applies with all backends stopped and that a backend's own `503 SEQUENCE_UNAVAILABLE` still passes through, re-ran the restart load test (28,151 IDs, 0 duplicates, every error now JSON), made the load test back off on any 5xx, and updated ADR-004 in the doc and the repo.

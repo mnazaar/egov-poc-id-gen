@@ -30,9 +30,6 @@ Thumbs.db
 .env
 .quarkus/
 
-# Load test output
-loadtest/out/
-
 # Personal reminders
 REMINDERS.md
 

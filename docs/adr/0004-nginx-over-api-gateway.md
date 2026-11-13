@@ -44,6 +44,18 @@ server {
         # an instance is never retried ("non_idempotent" is deliberately absent).
         proxy_next_upstream error timeout http_502 http_503;
         proxy_connect_timeout 2s;
+
+        # When no backend can answer (all down or restarting), reply in the API's JSON error shape instead
+        # of Nginx's HTML page. With proxy_intercept_errors off (the default) this only covers errors Nginx
+        # generates itself; a backend's own JSON error (e.g. 503 SEQUENCE_UNAVAILABLE) passes through as is.
+        proxy_intercept_errors off;
+        error_page 502 503 504 = @no_backend;
+    }
+
+    location @no_backend {
+        default_type application/json;
+        add_header Retry-After 5 always;
+        return 503 '{"error":{"code":"SERVICE_UNAVAILABLE","message":"No backend instance is available; try again shortly","details":{}}}';
     }
 }
 ```
@@ -51,6 +63,7 @@ server {
 - **`resolver` + `resolve`:** Docker's DNS returns one address per replica, and Nginx re-checks every 5 s, so a recreated or scaled replica joins the pool without restarting Nginx.
 - **`upstream`:** round-robin by default, so consecutive requests land on different replicas (the `X-Upstream` header shows which).
 - **`proxy_next_upstream`:** a request that can't reach an instance, or gets 502/503 from one, moves to the next. A `POST` that was already sent is never retried, so a retry can't silently burn or double-issue numbers.
+- **`error_page` → `@no_backend`:** when no backend can answer, Nginx replies `503 SERVICE_UNAVAILABLE` in the API's JSON error shape with `Retry-After: 5`, not its HTML page. It only covers errors Nginx generates; a backend's own JSON error passes through unchanged.
 - **Port 8080** is the only one published on the host; Postgres and the backends stay internal.
 
 **With another day: put a real gateway in front once tenants authenticate.**

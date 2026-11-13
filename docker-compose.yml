@@ -51,3 +51,14 @@ services:
     depends_on:
       - nginx
     command: ["python", "loadtest.py"]
+
+  jmeter:
+    build: ./loadtest/jmeter
+    profiles: [jmeter]
+    working_dir: /jmeter
+    volumes:
+      - ./loadtest:/jmeter
+    depends_on:
+      - nginx
+    command: ["-n", "-t", "idgen.jmx", "-Jhost=nginx", "-Jport=8080",
+              "-l", "out/jmeter/results.jtl", "-e", "-o", "out/jmeter/report", "-f"]
