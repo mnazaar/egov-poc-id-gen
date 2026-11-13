@@ -12,6 +12,15 @@ docker compose up --build
 Then open http://localhost:8080 (`/api/ping`, `/q/health/ready`).
 The first build downloads Maven dependencies and takes a few minutes.
 
+## How numbering behaves (by design)
+
+- **Unique, not sequential.** Each of the 3 backend instances takes its own block of numbers from a Postgres sequence (100 at a time, 10 for narrow counters) and issues from memory. Requests are spread round-robin, so consecutive IDs come from different blocks: `PG-AMR-2026-27-000001`, `…000101`, `…000201`, `…000002`. Within one instance they count up; across instances they interleave. Use `issuedAt`, not the ID, for issue order.
+- **Gaps are expected.** A restarted instance abandons the rest of its block. The brief allows gaps; it never allows duplicates, and blocks never overlap.
+- **No Redis on purpose.** A shared counter would add a network round trip to every ID; local blocks need one Postgres call per 100 IDs (817 req/s at p95 56 ms below).
+- **"Recent IDs" is per instance.** `GET /api/ids/recent` shows what the instance that answers has issued, so a refresh can show another instance's list, and a restart empties it. A shared view (Redis, written asynchronously so issuing isn't slowed) is the "another day" item.
+
+Details and alternatives: [ADR-001](docs/adr/0001-sequences-in-memory-blocks.md), [ADR-006](docs/adr/0006-per-instance-memory-no-redis.md).
+
 ## Concurrency test (zero duplicates)
 
 ```sh
@@ -107,7 +116,7 @@ curl -X POST http://localhost:8080/api/ids -H "Content-Type: application/json"  
 curl -X POST http://localhost:8080/api/ids/bulk -H "Content-Type: application/json"      -d '{"templateId":"WS_CONNECTION","city":"LDH","count":3}'
 curl "http://localhost:8080/api/ids/recent?templateId=PG_RECEIPT&city=AMR&limit=10"
 ```
-Repeat the first call: each of the 3 instances takes its own block of 100, so you'll see `…-000001`, `…-000101`, `…-000201`, then `…-000002`. Unique, with gaps by design (ADR-001).
+Repeat the first call: each of the 3 instances takes its own block of 100, so you'll see `…-000001`, `…-000101`, `…-000201`, then `…-000002`. Unique, with gaps by design (see [How numbering behaves](#how-numbering-behaves-by-design)). The recent list can also change between calls: it is per instance.
 
 **6. Errors have one shape**
 ```sh

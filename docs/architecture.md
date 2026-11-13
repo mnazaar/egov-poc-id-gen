@@ -81,7 +81,7 @@ The build is done when every box below can be ticked from a fresh clone. Reviewe
 - `data/` files are byte-for-byte unchanged.
 
 **Documents in the repo**
-- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, and `docs/adr/0001–0005`.
+- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, and `docs/adr/0001–0006`.
 
 ## Decisions on the brief's open points
 
@@ -256,6 +256,7 @@ Each decision lives in its own file under [`docs/adr/`](adr/):
 - [ADR-003: Counter scoping and multi-tenancy](adr/0003-counter-scoping-multi-tenancy.md)
 - [ADR-004: Nginx as the load balancer, not an API gateway](adr/0004-nginx-over-api-gateway.md)
 - [ADR-005: Templates and cities are loaded once at startup; changes need a restart](adr/0005-config-loaded-at-startup.md)
+- [ADR-006: Number blocks and recent IDs stay in each instance's memory (no Redis)](adr/0006-per-instance-memory-no-redis.md)
 
 ## Build plan for Claude Code
 
@@ -279,7 +280,7 @@ Start 5:00 IST, submit by 8:00 IST. Code first; the documents are written from w
 - **6:15–6:40 Concurrency test.** `loadtest/loadtest.py` + compose `loadtest` profile, plus the JMeter plan `loadtest/idgen.jmx` for throughput and latency.
 - *Done when:* 0 duplicates against 3 replicas, and again with `docker compose restart backend` mid-run. Save the output for the README.
 - **6:40–7:00 UI.** `index.html`: template + city dropdowns from the meta endpoints, a count field, issue, a results list, and a recent-IDs panel. **Code freeze at 7:00:** tag v1.0.0 and start the Docker Hub push in a second terminal.
-- **7:00–7:40 Documents from the code.** `spec.md` (problem, decisions table, out of scope), `docs/adr/0001–0005`, `plan.md` (milestones as they went, data model = sequences only, API from the real endpoints, test strategy, another day), `README.md` (`docker compose up`, the URL, test command, prebuilt image), `docs/ai-log.md` (kept up to date after every step; at the end add the exported session + 3–5 sentences from `docs/NOTES.md`).
+- **7:00–7:40 Documents from the code.** `spec.md` (problem, decisions table, out of scope), `docs/adr/0001–0006`, `plan.md` (milestones as they went, data model = sequences only, API from the real endpoints, test strategy, another day), `README.md` (`docker compose up`, the URL, test command, prebuilt image), `docs/ai-log.md` (kept up to date after every step; at the end add the exported session + 3–5 sentences from `docs/NOTES.md`).
 - **7:40–8:00 Verify and submit.** `git clone` into a new folder, `docker compose up`, run the load test, pull and run the Docker Hub image, then reply to the email with the repo link and the questions table.
 
 **If time runs short, cut in this order:** the JMeter plan, then the 3 replicas + Nginx (run against one instance and list multi-instance under "another day"), then the recent-IDs panel, then the API tests. Hold the 7:00 code freeze. Never cut the load test or the fresh-clone check.
@@ -303,6 +304,7 @@ idgen/
 ├── docs/adr/0003-counter-scoping-multi-tenancy.md
 ├── docs/adr/0004-nginx-over-api-gateway.md
 ├── docs/adr/0005-config-loaded-at-startup.md
+├── docs/adr/0006-per-instance-memory-no-redis.md
 ├── data/                     # templates.json, cities.csv — unchanged
 ├── src/main/java/…           # config, renderer, allocator, REST, errors
 ├── src/main/resources/application.yaml         # settings + data file paths

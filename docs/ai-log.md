@@ -83,3 +83,9 @@ The spec Claude worked from is [architecture.md](architecture.md).
 - One JMeter trial returned 502 for every request, right after compose restarted Nginx for the run; it did not recur in five later runs and wasn't explained.
 
 **Follow-up, JSON when no backend is up:** the author asked for Claude's suggestion: Nginx's HTML 502 during a full restart broke "well-formed errors". Claude added `error_page 502 503 504 = @no_backend` returning `503 SERVICE_UNAVAILABLE` in the API's shape with `Retry-After`, verified both that it applies with all backends stopped and that a backend's own `503 SEQUENCE_UNAVAILABLE` still passes through, re-ran the restart load test (28,151 IDs, 0 duplicates, every error now JSON), made the load test back off on any 5xx, and updated ADR-004 in the doc and the repo.
+
+## 2026-11-13 — ADR-006: per-instance memory, no Redis
+
+**Asked (author's decision):** recent IDs come from each instance's memory; with another day they could move to a central cache such as Redis. Keeping numbers in local blocks is intentional to avoid round trips, so Redis is not used for that: it would add network latency. IDs not being issued in exact sequence, and jumping by instance, is acceptable. Document it in the README and an ADR.
+
+**Claude did:** wrote ADR-006 (both behaviours, the four options for the recent view, and "another day": publish issued IDs to Redis asynchronously so issuing isn't slowed, Redis never deciding a number), added it to the Claude Doc and the ADR list, and added a "How numbering behaves (by design)" section near the top of the README so reviewers see it before testing. Also noted that the UI must label the recent list as per instance.
