@@ -10,7 +10,8 @@ The API contract, error codes, counter scoping (ADR-003) and allocation design (
 - Follow the API contract and error codes in the spec exactly. DTOs are Java `record`s.
 - Locks are per counter key, never global. Never call `nextval` per ID — always go through `BlockAllocator`. If endpoints run on virtual threads, use `ReentrantLock` instead of `synchronized`.
 - Block size comes from `pg_sequences.increment_by`, never from app config.
-- Every step ends with `./mvnw test` green and `docker compose up --build` working. Commit after each step with a clear message.
+- Every step ends with `./mvnw test` green and `docker compose up --build` working.
+- **Never commit or push until the author has reviewed the step and says to.** Leave changes uncommitted and summarise them for review.
 - When unsure, choose the option that **cannot produce a duplicate**, and add a line to `docs/NOTES.md`.
 - After every step, append an entry to `docs/ai-log.md`: what was asked, what Claude did, what went wrong or was corrected.
 

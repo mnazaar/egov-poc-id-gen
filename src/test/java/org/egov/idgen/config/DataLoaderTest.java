@@ -76,6 +76,12 @@ class DataLoaderTest {
     }
 
     @Test
+    void leadingByteOrderMarkIsIgnored() throws IOException {
+        Path f = write("cities.csv", "﻿tenant_id,city_code,city_name\r\npb.a,AAA,A\r\n");
+        assertEquals(List.of(new City("pb.a", "AAA", "A")), DataLoader.parseCities(f));
+    }
+
+    @Test
     void wrongHeaderIsRejected() throws IOException {
         Path f = write("cities.csv", "id,code,name\npb.a,AAA,A\n");
         assertThrows(ConfigException.class, () -> DataLoader.parseCities(f));

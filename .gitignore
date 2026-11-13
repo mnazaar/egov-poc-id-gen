@@ -35,3 +35,6 @@ loadtest/out/
 
 # Personal reminders
 REMINDERS.md
+
+# Local compose overrides (e.g. publishing Postgres for DB tools)
+docker-compose.override.yml

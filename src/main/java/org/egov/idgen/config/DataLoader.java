@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonLocation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.runtime.PreventFurtherStepsException;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,7 +16,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +51,16 @@ public class DataLoader {
 
     @PostConstruct
     void load() {
-        List<City> cityList = parseCities(Path.of(config.data().citiesPath()));
-        List<CompiledTemplate> templateList = parseTemplates(Path.of(config.data().templatesPath()));
+        List<City> cityList;
+        List<CompiledTemplate> templateList;
+        try {
+            cityList = parseCities(Path.of(config.data().citiesPath()));
+            templateList = parseTemplates(Path.of(config.data().templatesPath()));
+        } catch (ConfigException e) {
+            // Stop startup with one clear line instead of Quarkus's wrapped stack trace.
+            LOG.error("Invalid configuration: " + e.getMessage());
+            throw new PreventFurtherStepsException("Invalid configuration: " + e.getMessage(), 1);
+        }
         cities.load(cityList);
         templates.load(templateList);
         LOG.infof("Loaded %d templates and %d cities", templateList.size(), cityList.size());
@@ -127,8 +135,7 @@ public class DataLoader {
         if (!countersNode.isMissingNode() && !countersNode.isObject()) {
             throw new ConfigException(file + ": 'counters' must be an object");
         }
-        for (Iterator<Map.Entry<String, JsonNode>> it = countersNode.fields(); it.hasNext(); ) {
-            Map.Entry<String, JsonNode> e = it.next();
+        for (Map.Entry<String, JsonNode> e : countersNode.properties()) {
             JsonNode start = e.getValue().path("start");
             if (!start.isMissingNode() && !start.canConvertToLong()) {
                 throw new ConfigException(file + ": counters." + e.getKey() + ".start must be a whole number");
@@ -173,7 +180,7 @@ public class DataLoader {
     private static String read(Path file) {
         try {
             String s = Files.readString(file, StandardCharsets.UTF_8);
-            return s.startsWith("﻿") ? s.substring(1) : s;
+            return !s.isEmpty() && s.charAt(0) == 0xFEFF ? s.substring(1) : s; // strip a UTF-8 byte-order mark
         } catch (IOException e) {
             throw new ConfigException("Cannot read " + file.toAbsolutePath() + ": " + e, e);
         }

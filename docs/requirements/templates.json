@@ -1,0 +1,42 @@
+{
+  "templates": [
+    {
+      "id": "PG_RECEIPT",
+      "name": "Payment receipt number",
+      "format": "PG-[CITY]-[FY:yyyy-yy]-[SEQ:6]"
+    },
+    {
+      "id": "TL_LICENSE",
+      "name": "Trade license number",
+      "format": "TL/[CITY]/[CY:yyyy]/[SEQ:5]"
+    },
+    {
+      "id": "PGR_COMPLAINT",
+      "name": "Complaint number",
+      "format": "PGR-[SEQ:8]"
+    },
+    {
+      "id": "WS_CONNECTION",
+      "name": "Water & sewerage connection id",
+      "format": "WS-[CITY]-[SEQ_WS:4]-[CY:MM-yyyy]"
+    },
+    {
+      "id": "BPA_PERMIT",
+      "name": "Building permit number",
+      "format": "BPA-[CITY]-[FY:yy-yy]-[SEQ_BPA_PERMIT:6]"
+    },
+    {
+      "id": "EST_ALLOTMENT",
+      "name": "Estate allotment number",
+      "format": "EST-[CITY]-[SEQ_EST_ALLOT:5]"
+    }
+  ],
+  "counters": {
+    "SEQ_WS": {
+      "start": 1000
+    },
+    "SEQ_BPA_PERMIT": {
+      "start": 1
+    }
+  }
+}

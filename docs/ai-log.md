@@ -43,3 +43,5 @@ The spec Claude worked from is [architecture.md](architecture.md).
 - Claude left an unused helper in `CityRegistry` and rewrote the class.
 - One parser test relied on an obscure `java.time` pattern rule; Claude replaced it with a reserved character that always fails.
 - Found a spec inconsistency (WS sequence examples omit the month that the scoping rule requires); the code follows the rule, noted in `NOTES.md`.
+- The author tested a broken `cities.csv` and saw the right message buried under a Quarkus stack trace, which the spec forbids. Claude now logs one line and stops startup with `PreventFurtherStepsException`. While there, Claude found an invisible literal byte-order-mark character in the source and replaced it; two attempts through the shell mangled the escape before an editor edit fixed it.
+- The author asked to review before every commit; `CLAUDE.md` now says so.
