@@ -1,8 +1,8 @@
-# ID Generation Service — Architecture and Build Plan
+# Templated ID Generation Service — Architecture and Implementation Plan
 
 2026-11-13 · Nazaar
 
-A Quarkus + Postgres service that issues formatted government IDs (receipts, licences, permits) from configurable templates for 10 city tenants, with zero duplicates under parallel load. This document is the input for building it with Claude Code: the sections up to the ADRs are the specification, and **Build plan** gives the order of work with a done-check for each step.
+A Quarkus + Postgres service that issues formatted government IDs (receipts, licences, permits) from configurable templates for 10 city tenants, with zero duplicates under parallel load. This document is the input for building it with Claude Code: the sections up to the ADRs are the specification, and **Implementation plan** gives the order of work with a done-check for each step.
 
 ## Context and goals
 
@@ -81,7 +81,7 @@ The build is done when every box below can be ticked from a fresh clone. Reviewe
 - `data/` files are byte-for-byte unchanged.
 
 **Documents in the repo**
-- `spec.md`, `plan.md`, `README.md`, `docs/ai-log.md`, the Postman collection `egov-poc-id-gen.postman_collection.json`, and `docs/adr/0001–0006`.
+- `spec.md`, `plan.md`, `README.md`, `ai-log.md` (summary; full log in `docs/ai-log.md`), the Postman collection `egov-poc-id-gen.postman_collection.json`, and `docs/adr/0001–0006`.
 
 ## Decisions on the brief's open points
 
@@ -125,7 +125,7 @@ SELECT nextval('seq_pg_receipt_amr_2026_27');  -- returns the block start: 1, th
 | Service | Image | Exposed | Notes |
 |---|---|---|---|
 | `postgres` | `postgres:16-alpine` | internal | Healthcheck `pg_isready`; holds only sequences |
-| `backend` | built from `Dockerfile` (tag `<dockerhub-user>/idgen:1.0.0`) | internal :8080 | `deploy.replicas: 3`; `depends_on: postgres (service_healthy)`; mounts `./data:/data:ro` |
+| `backend` | built from `Dockerfile` (tag `nazaarblue/idgen:1.0.0`) | internal :8080 | `deploy.replicas: 3`; `depends_on: postgres (service_healthy)`; mounts `./data:/data:ro` |
 | `nginx` | `nginx:alpine` | **host :8080** | Round-robins to `backend:8080`; the only public port, so reviewers' requests spread over 3 instances |
 | `loadtest` | `python:3.12-slim` | — | `profiles: [test]`; runs `loadtest/loadtest.py` against `nginx` |
 
@@ -258,7 +258,7 @@ Each decision lives in its own file under [`docs/adr/`](adr/):
 - [ADR-005: Templates and cities are loaded once at startup; changes need a restart](adr/0005-config-loaded-at-startup.md)
 - [ADR-006: Number blocks and recent IDs stay in each instance's memory (no Redis)](adr/0006-per-instance-memory-no-redis.md)
 
-## Build plan for Claude Code
+## Implementation plan for Claude Code
 
 Start 5:00 IST, submit by 8:00 IST. Code first; the documents are written from what was actually built. Save this document in the repo as `docs/architecture.md`, and point `CLAUDE.md` at it so every session starts with the same spec.
 
@@ -313,10 +313,10 @@ idgen/
 ├── src/test/java/…           # renderer unit tests
 └── loadtest/                 # loadtest.py (duplicate check) + idgen.jmx (JMeter throughput)
 ```
-- **Before 5:00 (5 minutes):** create the Docker Hub repository (e.g. `<dockerhub-user>/idgen`) and an access token, then `docker login`. Put nothing secret in the repo.
+- **Before 5:00 (5 minutes):** create the Docker Hub repository (e.g. `nazaarblue/idgen`) and an access token, then `docker login`. Put nothing secret in the repo.
 - **Commit at the end of every step** with a clear message. Combined with the code-first order, the git log becomes evidence of how you scoped the time.
-- **Compose:** give the backend both `build: .` and `image: <dockerhub-user>/idgen:1.0.0`. A clean checkout builds locally, and the built image carries the published name.
-- **Push at the 7:00 freeze:** `docker buildx build --platform linux/amd64,linux/arm64 -t <dockerhub-user>/idgen:1.0.0 -t <dockerhub-user>/idgen:latest --push .`. Build for both architectures, because reviewers on Apple Silicon Macs need arm64. The arm64 leg runs under emulation and can take several minutes, so it runs while you write the docs.
+- **Compose:** give the backend both `build: .` and `image: nazaarblue/idgen:1.0.0` and `pull_policy: build`. A clean checkout always builds from source and never pulls, and the built image carries the published name.
+- **Push at the 7:00 freeze:** `docker buildx build --platform linux/amd64,linux/arm64 -t nazaarblue/idgen:1.0.0 -t nazaarblue/idgen:latest --push .`. Build for both architectures, because reviewers on Apple Silicon Macs need arm64. The arm64 leg runs under emulation and can take several minutes, so it runs while you write the docs.
 - **README:** add a "Run the prebuilt image" section with `docker pull` and a `docker run` against the compose Postgres.
 - **Another day:** a GitHub Actions workflow (`docker/build-push-action`) that pushes on every tag. Today a manual push avoids debugging CI against the clock.
 

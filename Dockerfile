@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage: compile with the Maven wrapper on JDK 25 ----
-FROM eclipse-temurin:25-jdk AS build
+# Runs on the build machine's own platform even for a multi-platform build: the jar is the same everywhere,
+# so only the runtime stage below is built per platform (no Maven under arm64 emulation).
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
 WORKDIR /build
 COPY mvnw pom.xml ./
 COPY .mvn .mvn

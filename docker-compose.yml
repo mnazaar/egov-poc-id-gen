@@ -15,7 +15,10 @@ services:
 
   backend:
     build: .
-    image: ${DOCKERHUB_USER:-local}/idgen:1.0.0
+    # Published as nazaarblue/idgen on Docker Hub, but compose always builds from source
+    # (pull_policy: build), so a fresh clone never depends on the registry.
+    image: nazaarblue/idgen:1.0.0
+    pull_policy: build
     environment:
       DB_URL: postgresql://postgres:5432/idgen
       DB_USER: idgen

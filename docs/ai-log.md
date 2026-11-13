@@ -105,3 +105,11 @@ The spec Claude worked from is [architecture.md](architecture.md).
 **Follow-up, Postman:** the author added `egov-poc-id-gen.postman_collection.json` and asked for it to be listed with the required documents. Claude checked it held no tokens or private URLs, then added a README section describing each request, and listed it in the spec (Claude Doc and local copy) and `CLAUDE.md`.
 
 **Follow-up, README UI walkthrough:** the author asked how to test with the UI. Claude added a 10-step table (single, interleaving across instances, bulk, PGR global counter, EST hint and 422, invalid count, per-instance recent panel, all backends down, Postgres down), then corrected two rows that promised more than the system guarantees: example numbers only appear on a fresh database, and PGR numbers only continue exactly when the same instance serves both requests.
+
+## 2026-11-13 — Docker Hub image
+
+**Asked:** build the image, push it as `nazaarblue/` on Docker Hub, and add it to the project.
+
+**Claude did:** changed the Dockerfile's build stage to `--platform=$BUILDPLATFORM` so Maven runs once natively and only the runtime stage is built per architecture; set compose to `image: nazaarblue/idgen:1.0.0` with `pull_policy: build` so `docker compose up` still builds from source; built both platforms from an empty cache (3 min) and started each image on its own architecture (`x86_64`, `aarch64`); the author logged in to Docker Hub; Claude pushed `1.0.0` and `latest` and confirmed the manifest lists amd64 and arm64. Added a README section for the prebuilt image and verified it by following it word for word against a freshly pulled image (started in 2.5 s, issued `PG-AMR-2026-27-000001`). Replaced the `<dockerhub-user>` placeholders in the spec.
+
+**Went wrong / noticed:** the image logged repeated Vert.x `IllegalStateException`s when started with no database; Claude traced them to the connection pool's timeout timer (library noise while readiness is correctly DOWN), confirmed they never appear with Postgres present, and recorded it rather than patching around it.

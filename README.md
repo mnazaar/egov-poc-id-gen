@@ -1,7 +1,17 @@
 # egov-poc-id-gen
 
 ID generation service: formatted government IDs from templates, for 10 city tenants, with zero duplicates under parallel load.
-Quarkus + Postgres sequences. Design: [docs/architecture.md](docs/architecture.md).
+Quarkus + Postgres sequences. Architecture and implementation plan: [docs/architecture.md](docs/architecture.md); decisions in [docs/adr/](docs/adr/).
+
+## Documents
+
+| Document | What it covers |
+|---|---|
+| [spec.md](spec.md) | The problem, every ambiguity with the decision and why, questions for the reviewers, out of scope |
+| [plan.md](plan.md) | Milestones as they went, data model, API, test strategy, "another day" |
+| [ai-log.md](ai-log.md) | Where the AI was wrong and how it was caught; full log in [docs/ai-log.md](docs/ai-log.md) |
+| [docs/architecture.md](docs/architecture.md) | The architecture and implementation plan written before any code ([PDF](docs/Architecture%20and%20Implementation%20Plan.pdf)) |
+| [docs/adr/](docs/adr/) | Six architecture decision records |
 
 ## Run
 
@@ -11,6 +21,20 @@ docker compose up --build
 
 Then open **http://localhost:8080** for the UI: pick a template and city, enter a count (1 = single, 2–1000 = bulk), and press Issue. The page lists what it issued, with the instance that served each batch, and the recent IDs of the instance that answers (see [How numbering behaves](#how-numbering-behaves-by-design)). Health: `/q/health/ready`.
 The first build downloads Maven dependencies and takes a few minutes.
+
+## Run the prebuilt image (Docker Hub)
+
+The backend is published as [`nazaarblue/idgen`](https://hub.docker.com/r/nazaarblue/idgen) (`1.0.0` and `latest`) for `linux/amd64` and `linux/arm64` (Apple Silicon). `docker compose up` above does **not** use it: compose always builds from source (`pull_policy: build`), so the review never depends on the registry.
+
+To run one instance from the image, with its own Postgres:
+
+```sh
+docker network create idgen-demo
+docker run -d --name idgen-pg --network idgen-demo   -e POSTGRES_DB=idgen -e POSTGRES_USER=idgen -e POSTGRES_PASSWORD=idgen postgres:16-alpine
+docker run --rm -p 8080:8080 --network idgen-demo   -e DB_URL=postgresql://idgen-pg:5432/idgen nazaarblue/idgen:1.0.0
+```
+
+Open http://localhost:8080. The image carries the provided `data/` files; mount your own with `-v ./data:/data:ro`. Clean up with `docker rm -f idgen-pg && docker network rm idgen-demo`.
 
 ## How numbering behaves (by design)
 
