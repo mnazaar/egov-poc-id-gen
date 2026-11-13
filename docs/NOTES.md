@@ -14,3 +14,10 @@ Decisions made while building, in order. Feeds `ai-log.md` and `spec.md`.
 - 2026-11-13 06:05 — README: manual testing steps for step 1. Extend with ID endpoints and error cases as they land.
 - 2026-11-13 06:10 — JMeter added to the plan for throughput/latency only; `loadtest.py` remains the duplicate proof. JMeter is the first thing to cut if short on time.
 - 2026-11-13 06:10 — JMeter added to the plan for throughput/latency only; `loadtest.py` remains the duplicate proof. JMeter is the first thing to cut if short on time.
+- 2026-11-13 06:40 — Data copied from the candidate pack unchanged. `cities.csv` has CRLF endings; `.gitattributes` marks `data/**` as `-text` so git never rewrites them (a fresh clone on Linux gets the same bytes). The brief itself is not committed.
+- 2026-11-13 06:40 — A template must contain exactly one `[SEQ…]` placeholder. With none, every ID it renders would be identical; with two, which one is unique is unclear. Both fail startup.
+- 2026-11-13 06:40 — City codes must be letters and digits only, since they're printed into IDs: a code containing `-` or `/` could make IDs from different cities collide. Duplicate tenant IDs or codes (case-insensitive) fail startup.
+- 2026-11-13 06:40 — Counter key = kind (implicit/named) + counter + city (only if `[CITY]` is printed) + the rendered date placeholders (only those printed). The kind keeps a template called `SEQ_X` from sharing a sequence with a named counter `SEQ_X`.
+- 2026-11-13 06:40 — Spec inconsistency: ADR-001/003 show the WS sequence as `seq_ws_amr`, but the decisions table scopes `SEQ_WS` by city + month (it prints `[CY:MM-yyyy]`). Code follows the scoping rule: the key includes the month. Fix the examples when writing the ADR files' final versions.
+- 2026-11-13 06:40 — A named counter entry without `start` defaults to 1; a negative `start` fails startup.
+- 2026-11-13 06:40 — Template IDs are matched exactly (case-sensitive); only cities are case-insensitive, as the spec says.

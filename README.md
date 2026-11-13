@@ -35,14 +35,20 @@ curl http://localhost:8080/q/health/ready
 ```
 Expect `"status": "UP"` with the PostgreSQL check UP.
 
-**4. Failover when a backend stops**
+**4. Templates and cities are loaded**
+```sh
+curl http://localhost:8080/api/templates   # 6 templates; EST_ALLOTMENT has "canIssue": false
+curl http://localhost:8080/api/cities      # 10 cities
+```
+
+**5. Failover when a backend stops**
 ```sh
 docker stop idgen-backend-2
 curl -i http://localhost:8080/api/ping     # still 200, now 2 instances
 docker start idgen-backend-2                   # rejoins within ~5 s
 ```
 
-**5. Readiness goes DOWN without Postgres**
+**6. Readiness goes DOWN without Postgres**
 ```sh
 docker stop idgen-postgres-1
 curl http://localhost:8080/q/health/ready  # 503, DOWN
@@ -50,7 +56,7 @@ curl http://localhost:8080/api/ping        # still 200 (no DB needed)
 docker start idgen-postgres-1
 ```
 
-**6. Only Nginx is exposed**
+**7. Only Nginx is exposed**
 ```sh
 curl http://localhost:5432                 # connection refused
 docker compose port backend 8080               # error: no host port

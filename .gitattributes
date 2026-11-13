@@ -1,0 +1,5 @@
+# Provided data files must stay byte-for-byte as delivered (cities.csv has CRLF).
+data/** -text
+# Shell scripts must keep LF so they run inside Linux containers.
+mvnw text eol=lf
+*.sh text eol=lf

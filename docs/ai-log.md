@@ -26,3 +26,20 @@ The spec Claude worked from is [architecture.md](architecture.md).
 - Asked for the other ADRs in `docs/adr/` too: Claude copied ADR-001 to ADR-003 from the spec into their own files, word for word.
 - Asked for the Nginx config in ADR-004 and for manual test steps: Claude added both (config section in ADR-004, "Manual testing" in the README).
 - Asked to add JMeter to the plan: Claude added a throughput test (`loadtest/idgen.jmx`) beside the Python duplicate check, in the Tests list, the 6:15 step, the cut order (cut first) and the repo layout.
+
+## 2026-11-13 — Step 2: config + templates
+
+**Asked:** DataLoader, TemplateRegistry, CityRegistry, TemplateParser, CompiledTemplate.render, CounterKey, plus unit tests. Done when render tests pass for all six templates, the FY boundary, padding growth, PGR global key and EST rejection, and `GET /api/templates` and `GET /api/cities` return data.
+
+**Claude did:**
+- Found the data files missing from the repo, located the candidate pack in Downloads, and copied `data/` in unchanged. Noticed `cities.csv` has CRLF line endings and added `.gitattributes` so git stores it byte-for-byte; verified with `git hash-object`.
+- `template`: sealed `Token` (Literal, CityCode, FinancialYear, CalendarDate, Sequence), `TemplateParser` (errors name the template and position), `CompiledTemplate` (render from tokens, counter key, COUNTER_NOT_CONFIGURED), `CounterKey`, `CounterSpec`.
+- `config`: `IdgenConfig`, `DataLoader` (startup; CSV and JSON errors name file and line), `CityRegistry` (tenant ID or code, case-insensitive), `TemplateRegistry`, a readiness check for loaded config.
+- `api`: `ErrorCode`, `IdgenException`, `MetaResource` (`/api/templates`, `/api/cities`).
+- 55 tests green: parser, rendering of all six provided templates, FY boundary (incl. 31 Mar 20:00 UTC = 1 Apr IST), padding growth, PGR global key, EST rejection, loader errors, API. Endpoints verified through Nginx in Docker.
+
+**Went wrong / corrected:**
+- Claude first copied `BRIEF.md` into `docs/`, then removed it: committing the employer's assignment text to a public repo is the author's call.
+- Claude left an unused helper in `CityRegistry` and rewrote the class.
+- One parser test relied on an obscure `java.time` pattern rule; Claude replaced it with a reserved character that always fails.
+- Found a spec inconsistency (WS sequence examples omit the month that the scoping rule requires); the code follows the rule, noted in `NOTES.md`.
